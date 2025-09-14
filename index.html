@@ -133,4 +133,286 @@
     <!-- よく使う -->
     <div class="chips" id="chips">
       <span class="chip" data-add="📱 けいたい">📱 けいたい</span>
-      <span class="chip" data-add="🔋 じ
+      <span class="chip" data-add="🔋 じゅうでんき">🔋 じゅうでんき</span>
+      <span class="chip" data-add="💧 すいとう">💧 すいとう</span>
+      <span class="chip" data-add="🧢 ぼうし">🧢 ぼうし</span>
+      <span class="chip" data-add="🎒 かばん">🎒 かばん</span>
+      <span class="chip" data-add="📗 べんきょうセット">📗 べんきょうセット</span>
+    </div>
+
+    <!-- 進捗 -->
+    <div class="progressBox">
+      <div class="progressTop">
+        <div>じょうたい：<span id="count">0</span>/<span id="total">0</span></div>
+        <div id="cheer">がんばれ！</div>
+      </div>
+      <div class="barLine"><div class="barFill" id="barFill"></div></div>
+    </div>
+
+    <!-- 操作（※すべてチェック無し） -->
+    <div class="bar">
+      <button id="uncheckAllBtn" class="btn">ぜんぶ はずす</button>
+      <button id="clearCheckedBtn" class="btn danger">✅を けす</button>
+    </div>
+
+    <!-- リスト -->
+    <ul id="list"></ul>
+  </div>
+
+  <footer>
+    <div class="footRow">
+      <div class="stamp">スタンプ <span class="count" id="stampCount">0こ</span></div>
+      <div class="ts">ほぞん先：この端末 / さいしゅう更新 <span id="ts">–</span></div>
+    </div>
+  </footer>
+
+  <!-- お祝いモーダル -->
+  <div class="modal" id="modal">
+    <div class="card">
+      <div style="font-size:2rem">🎉</div>
+      <h3>ぜんぶ できた！すごい！</h3>
+      <p>きょうのスタンプを 1こ てにいれたよ</p>
+      <button class="ok" id="okBtn">OK</button>
+    </div>
+  </div>
+
+  <!-- 紙ふぶき -->
+  <div class="cele" id="cele"></div>
+
+<script>
+/* ===============================
+   もちものチェッカー（Kids簡単版）
+   - 追加/編集/削除
+   - チェック / 全解除 / ✅削除
+   - 進捗バー・応援
+   - 全部完了でスタンプ + 紙ふぶき + モーダル（1日1回）
+   - localStorage保存
+   =============================== */
+const LS_KEY = 'kids_packlist_v1';
+let state = {
+  items: [],                 // {id, name, checked}
+  updatedAt: Date.now(),
+  stamps: 0,
+  lastStampDate: ""          // "YYYY-MM-DD" 二重付与防止
+};
+
+const $ = (s)=>document.querySelector(s);
+const listEl = $('#list');
+const inputEl = $('#newItem');
+const tsEl = $('#ts');
+const barFill = $('#barFill');
+const countEl = $('#count');
+const totalEl = $('#total');
+const cheerEl = $('#cheer');
+const stampCountEl = $('#stampCount');
+const modal = $('#modal');
+const cele = $('#cele');
+
+// 今日
+const d = new Date();
+const todayStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+$('#today').textContent = `${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
+// 絵文字アイコン推定
+function pickIcon(name){
+  const n = name.toLowerCase();
+  const map = [
+    { k: ['すいとう','みず','water','bottle'], e:'💧'},
+    { k: ['けいたい','スマホ','phone'], e:'📱'},
+    { k: ['じゅうでん','充電','charger','cable'], e:'🔋'},
+    { k: ['ぼうし','hat','cap'], e:'🧢'},
+    { k: ['かさ','umbrella'], e:'☂️'},
+    { k: ['くつ','shoes'], e:'👟'},
+    { k: ['さいふ','財布','wallet'], e:'💳'},
+    { k: ['べんきょう','ノート','教科書','pencil','pen','note','text'], e:'📗'},
+    { k: ['かばん','bag','backpack'], e:'🎒'},
+    { k: ['マスク','mask'], e:'😷'}
+  ];
+  for(const m of map){ if(m.k.some(x => n.includes(x))) return m.e; }
+  const first = name.trim().charAt(0);
+  return /\p{Extended_Pictographic}/u.test(first)? first : '📌';
+}
+
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function fmtTime(t){
+  const d=new Date(t);
+  const mm=String(d.getMonth()+1).padStart(2,'0');
+  const dd=String(d.getDate()).padStart(2,'0');
+  const h=String(d.getHours()).padStart(2,'0');
+  const m=String(d.getMinutes()).padStart(2,'0');
+  return `${mm}/${dd} ${h}:${m}`;
+}
+
+function save(){
+  state.updatedAt = Date.now();
+  localStorage.setItem(LS_KEY, JSON.stringify(state));
+  tsEl.textContent = fmtTime(state.updatedAt);
+  stampCountEl.textContent = `${state.stamps}こ`;
+}
+
+function load(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(raw){
+      const obj = JSON.parse(raw);
+      if(Array.isArray(obj.items)) state.items = obj.items;
+      if(obj.updatedAt) state.updatedAt = obj.updatedAt;
+      if(Number.isInteger(obj.stamps)) state.stamps = obj.stamps;
+      if(typeof obj.lastStampDate === 'string') state.lastStampDate = obj.lastStampDate;
+    }
+  }catch(e){}
+}
+
+function updateProgress(){
+  const total = state.items.length;
+  const done = state.items.filter(i=>i.checked).length;
+  totalEl.textContent = total;
+  countEl.textContent = done;
+  const pct = total ? Math.round(done/total*100) : 0;
+  barFill.style.width = pct+'%';
+  // 応援メッセージ
+  const msg = pct===0 ? 'がんばれ！' :
+              pct<50 ? 'いいちょうし！' :
+              pct<100 ? 'あとすこし！' :
+              'かんせい！';
+  cheerEl.textContent = msg;
+  // 全部できた → 1日1回スタンプ
+  if(total>0 && done===total){
+    if(state.lastStampDate !== todayStr){
+      state.stamps += 1;
+      state.lastStampDate = todayStr;
+      save();
+      celebrate();
+    }
+  }
+}
+
+function celebrate(){
+  // モーダル
+  modal.style.display = 'grid';
+  // 紙ふぶき（絵文字）
+  cele.innerHTML = '';
+  const picks = ['🎉','✨','🎊','🌟','💫','🥳','🟡','🔵','🟣'];
+  const N = 80;
+  for(let i=0;i<N;i++){
+    const s = document.createElement('span');
+    s.textContent = picks[Math.floor(Math.random()*picks.length)];
+    s.style.position='fixed';
+    s.style.left = Math.random()*100+'vw';
+    s.style.top = '-10vh';
+    s.style.fontSize = (Math.random()*18+14)+'px';
+    s.style.transition = `transform ${(Math.random()*1.5+1.2).toFixed(2)}s ease-in, opacity .3s linear`;
+    cele.appendChild(s);
+    requestAnimationFrame(()=>{
+      s.style.transform = `translate(${(Math.random()*2-1)*30}vw, 120vh) rotate(${(Math.random()*720-360)}deg)`;
+    });
+    setTimeout(()=> s.style.opacity=0, 1400+Math.random()*500);
+    setTimeout(()=> s.remove(), 2200);
+  }
+}
+
+function render(){
+  listEl.innerHTML = '';
+  state.items.forEach(item=>{
+    const li = document.createElement('li');
+    if(item.checked) li.classList.add('checked');
+
+    const icon = document.createElement('div');
+    icon.className='icon';
+    icon.textContent = pickIcon(item.name);
+
+    const label = document.createElement('label');
+    const cb = document.createElement('input');
+    cb.type='checkbox'; cb.checked=item.checked;
+    cb.addEventListener('change', ()=>{
+      item.checked = cb.checked;
+      save(); render();
+    });
+
+    const name = document.createElement('span');
+    name.className='name';
+    name.textContent = item.name;
+
+    label.appendChild(cb);
+    label.appendChild(name);
+
+    const actions = document.createElement('div');
+    actions.className='actions';
+
+    const edit = document.createElement('button');
+    edit.className='iconbtn';
+    edit.textContent='編集';
+    edit.addEventListener('click', ()=>{
+      const v = prompt('なまえを なおす', item.name);
+      if(v===null) return;
+      const t = v.trim();
+      if(!t) return alert('からの なまえは だめだよ');
+      item.name = t;
+      save(); render();
+    });
+
+    const del = document.createElement('button');
+    del.className='iconbtn';
+    del.textContent='削除';
+    del.addEventListener('click', ()=>{
+      if(!confirm(`「${item.name}」を けす？`)) return;
+      state.items = state.items.filter(x=>x.id!==item.id);
+      save(); render();
+    });
+
+    actions.appendChild(edit);
+    actions.appendChild(del);
+
+    li.appendChild(icon);
+    li.appendChild(label);
+    li.appendChild(actions);
+    listEl.appendChild(li);
+  });
+
+  tsEl.textContent = fmtTime(state.updatedAt);
+  updateProgress();
+}
+
+/* 追加 */
+function addItem(name){
+  const v = (name ?? inputEl.value).trim();
+  if(!v) return;
+  state.items.push({id: uid(), name: v, checked:false});
+  inputEl.value = '';
+  save(); render();
+}
+
+/* イベント */
+$('#addBtn').addEventListener('click', ()=> addItem());
+inputEl.addEventListener('keydown', (e)=>{ if(e.key==='Enter') addItem(); });
+
+$('#uncheckAllBtn').addEventListener('click', ()=>{
+  state.items.forEach(i=> i.checked=false);
+  save(); render();
+});
+$('#clearCheckedBtn').addEventListener('click', ()=>{
+  if(!state.items.some(i=>i.checked)) return alert('✅は ついていないよ');
+  if(!confirm('✅が ついた こうもくを けす？')) return;
+  state.items = state.items.filter(i=>!i.checked);
+  save(); render();
+});
+
+$('#okBtn').addEventListener('click', ()=> modal.style.display='none');
+modal.addEventListener('click', (e)=>{ if(e.target===modal) modal.style.display='none'; });
+
+// チップで追加
+document.querySelectorAll('.chip').forEach(c=>{
+  c.addEventListener('click', ()=>{
+    addItem(c.dataset.add);
+    c.classList.add('pop');
+    setTimeout(()=> c.classList.remove('pop'), 220);
+  });
+});
+
+/* 起動 */
+load(); render();
+stampCountEl.textContent = `${state.stamps}こ`;
+tsEl.textContent = fmtTime(state.updatedAt);
+</script>
+</body>
+</html>
