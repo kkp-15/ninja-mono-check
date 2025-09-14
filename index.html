@@ -3,133 +3,134 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>持ち物チェッカー</title>
-<meta name="description" content="忘れ物防止のためのシンプルな持ち物チェックアプリ。スマホ最適化UI。">
-
+<title>もちものチェッカー</title>
+<meta name="description" content="小学生でも使いやすい持ち物チェック。登録・編集・削除、チェック、全解除、✅削除、進捗バー、スタンプ、ごほうび演出。端末に自動保存。">
 <style>
   :root { color-scheme: light dark; }
-  body {
-    margin: 0; padding: 0; font-family: system-ui, sans-serif;
-    background: Canvas; color: CanvasText;
+  * { box-sizing: border-box; }
+  body{
+    margin:0; font-family: ui-rounded, system-ui, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+    background: linear-gradient(180deg,#f7fbff 0%,#fff 60%,#fff7f3 100%);
+    color:#222;
   }
-  header {
-    position: sticky; top: 0;
-    background: color-mix(in oklab, Canvas 90%, CanvasText 5%);
-    padding: 12px; font-size: 1.2rem; font-weight: bold;
-    text-align: center; border-bottom: 1px solid #ccc;
+  header{
+    position:sticky; top:0; z-index:5;
+    backdrop-filter: blur(6px);
+    background: color-mix(in oklab, white 90%, transparent);
+    border-bottom:1px solid #eee;
+    padding: 12px 14px; text-align:center;
+  }
+  .title{ font-weight:900; font-size:1.25rem; }
+  .sub{ font-size:.95rem; opacity:.8; }
+
+  .wrap{ max-width:760px; margin: 8px auto 96px; padding: 0 12px; }
+
+  /* 入力 */
+  .addRow{ margin-top:12px; display:flex; gap:8px; }
+  .addRow input{
+    flex:1; padding:14px 16px; font-size:1rem; border-radius:14px; border:2px solid #c8e6ff; background:#fff;
+  }
+  .btnPrimary{
+    padding:14px 18px; border:none; border-radius:14px; font-weight:800; font-size:1rem; color:white;
+    background: linear-gradient(135deg,#6ea8ff,#7bd5ff);
+    box-shadow: 0 3px 0 rgba(0,0,0,.08);
+  }
+  .btnPrimary:active{ transform: translateY(1px); }
+
+  /* よく使う（チップ） */
+  .chips{ display:flex; gap:8px; flex-wrap:wrap; margin:10px 2px 0; }
+  .chip{
+    padding:10px 12px; background:#fff; border:2px dashed #ffd66e; border-radius:999px; font-weight:700; user-select:none;
   }
 
-  /* 入力エリア */
-  .row { display: flex; gap: 8px; padding: 10px; }
-  .row input {
-    flex: 1; padding: 14px; font-size: 1rem;
-    border-radius: 12px; border: 1px solid #ccc;
+  /* 操作バー（※すべてチェック無し） */
+  .bar{ display:flex; gap:8px; margin:14px 0 8px; }
+  .bar .btn{
+    flex:1; padding:12px; border:none; border-radius:12px; font-weight:800; background:#ffeec2;
   }
-  .row button {
-    padding: 12px 16px; border: none; border-radius: 12px;
-    background: #007aff; color: white; font-size: 1rem; font-weight: bold;
-  }
+  .bar .danger{ background:#ffe0e0; }
 
-  /* 操作ボタン */
-  .bar {
-    display: flex; gap: 8px; flex-wrap: wrap;
-    padding: 10px; justify-content: space-between;
+  /* 進捗 */
+  .progressBox{
+    background:#fff; border:2px solid #d9f1ff; border-radius:16px; padding:10px 12px; margin:10px 0 4px;
   }
-  .bar button {
-    flex: 1; padding: 14px; font-size: .95rem;
-    border: none; border-radius: 12px; font-weight: bold;
-    background: #eee; color: #333;
-  }
+  .progressTop{ display:flex; justify-content:space-between; align-items:center; font-weight:800; font-size:.95rem; }
+  .barLine{ height:12px; border-radius:999px; background:#f1f5f9; overflow:hidden; margin-top:8px; }
+  .barFill{ height:100%; width:0%; background:linear-gradient(90deg,#7bd5ff,#91f0b8); }
 
   /* リスト */
-  ul { list-style: none; margin: 0; padding: 10px; }
-  li {
-    background: color-mix(in oklab, Canvas 96%, CanvasText 3%);
-    border-radius: 12px; margin-bottom: 10px; padding: 12px;
-    display: flex; justify-content: space-between; align-items: center;
+  ul{ list-style:none; padding:0; margin:10px 0 0; }
+  li{
+    background:#ffffff; border:2px solid #f0f0f0; border-radius:16px;
+    display:flex; align-items:center; gap:10px; padding:12px; margin:10px 0;
+    box-shadow: 0 2px 0 rgba(0,0,0,.04);
   }
-  li label { display: flex; align-items: center; gap: 10px; flex: 1; }
-  li input[type=checkbox] { width: 22px; height: 22px; }
-  li .name { font-size: 1rem; }
-  li.checked .name { text-decoration: line-through; opacity: 0.6; }
-
-  .actions button {
-    margin-left: 6px; padding: 6px 10px; font-size: .9rem;
-    border-radius: 10px; border: 1px solid #aaa; background: white;
-  }
+  li .icon{ font-size:1.4rem; width:1.8rem; text-align:center; }
+  li label{ display:flex; align-items:center; gap:12px; flex:1; }
+  li input[type=checkbox]{ width:26px; height:26px; }
+  li .name{ font-size:1.05rem; font-weight:800; }
+  li.checked{ border-color:#c8f5d4; background:#f6fff8; }
+  li.checked .name{ text-decoration: line-through; opacity:.6; }
+  .actions{ display:flex; gap:6px; }
+  .iconbtn{ padding:8px 10px; border-radius:10px; border:1px solid #ddd; background:#fff; font-weight:800; }
 
   /* フッター */
-  footer {
-    position: sticky; bottom: 0; background: #f9f9f9;
-    border-top: 1px solid #ccc; text-align: center;
-    padding: 10px; font-size: 0.8rem; opacity: 0.7;
+  footer{
+    position:fixed; left:0; right:0; bottom:0; z-index:6;
+    background: color-mix(in oklab, white 90%, transparent);
+    border-top:1px solid #eee; padding:10px 12px;
+  }
+  .footRow{
+    max-width:760px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:10px;
+  }
+  .stamp{ display:flex; align-items:center; gap:8px; font-weight:900; }
+  .stamp .count{ padding:6px 10px; background:#fff; border:2px solid #ffd66e; border-radius:10px; }
+  .ts{ font-size:.85rem; opacity:.75; }
+
+  /* モーダル */
+  .modal{ position:fixed; inset:0; display:none; place-items:center; z-index:20; background: rgba(0,0,0,.3); }
+  .card{
+    width:min(92vw,420px); background:#fff; border-radius:20px; padding:20px; text-align:center; border:3px solid #c8f5d4;
+  }
+  .card h3{ margin:6px 0 8px; font-size:1.2rem; }
+  .card p{ margin:6px 0 14px; }
+  .card .ok{ padding:12px 16px; border:none; border-radius:12px; font-weight:900; background:#91f0b8; }
+
+  /* かんたんアニメ */
+  @keyframes pop { 0%{transform:scale(.9)} 60%{transform:scale(1.05)} 100%{transform:scale(1)} }
+  .pop { animation: pop .18s ease-out; }
+  .cele{ position:fixed; left:0; top:0; width:100%; height:0; pointer-events:none; z-index:30; }
+
+  /* ダーク */
+  @media (prefers-color-scheme: dark){
+    body{ background: linear-gradient(180deg,#0f1220 0%,#121a22 60%,#101416 100%); color:#f1f5f9;}
+    .addRow input{ background:#0f1218; color:#e8f0ff; border-color:#2a3b52;}
+    .chip{ background:#0f1218; border-color:#665500; }
+    .bar .btn{ background:#2a2f36; color:#e5e7eb; }
+    .bar .danger{ background:#3a2528; }
+    .progressBox{ background:#0f1218; border-color:#213041; }
+    li{ background:#0f1218; border-color:#2b2b2b; }
+    li.checked{ background:#0e1a12; border-color:#15351f; }
+    .iconbtn{ background:#11151a; border-color:#333; color:#e5e7eb; }
+    footer{ background: rgba(8,10,14,.7); border-color:#222; }
+    .card{ background:#0f1218; border-color:#15351f; }
   }
 </style>
 </head>
 <body>
-  <header>🧳 持ち物チェッカー</header>
+  <header>
+    <div class="title">もちものチェッカー</div>
+    <div class="sub">きょう（<span id="today">--</span>）のもちものをチェックしよう</div>
+  </header>
 
-  <div class="row">
-    <input id="newItem" type="text" placeholder="アイテムを入力…" />
-    <button id="addBtn">追加</button>
-  </div>
+  <div class="wrap">
+    <!-- 入力 -->
+    <div class="addRow">
+      <input id="newItem" type="text" placeholder="れい）📱 けいたい / 💧 すいとう / 🧢 ぼうし" />
+      <button id="addBtn" class="btnPrimary">ついか</button>
+    </div>
 
-  <div class="bar">
-    <button id="uncheckAllBtn">全解除</button>
-    <button id="clearCheckedBtn">✅削除</button>
-  </div>
-
-  <ul id="list"></ul>
-
-  <footer>保存先：この端末 / 最終更新 <span id="ts">–</span></footer>
-
-<script>
-const LS_KEY = 'packlist_v3';
-let state = { items: [], updatedAt: Date.now() };
-
-const $ = (sel)=>document.querySelector(sel);
-const listEl = $('#list'), tsEl = $('#ts'), inputEl = $('#newItem');
-
-function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2); }
-function fmtTime(t){ const d=new Date(t);return `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;}
-
-function save(){ state.updatedAt=Date.now(); localStorage.setItem(LS_KEY,JSON.stringify(state)); tsEl.textContent=fmtTime(state.updatedAt);}
-function load(){ try{const raw=localStorage.getItem(LS_KEY);if(raw){state=JSON.parse(raw)||state;}}catch(e){} }
-
-function render(){
-  listEl.innerHTML='';
-  state.items.forEach(item=>{
-    const li=document.createElement('li');
-    if(item.checked) li.classList.add('checked');
-
-    const label=document.createElement('label');
-    const cb=document.createElement('input');
-    cb.type='checkbox'; cb.checked=item.checked;
-    cb.onchange=()=>{item.checked=cb.checked; save(); render();};
-    const span=document.createElement('span'); span.className='name'; span.textContent=item.name;
-
-    label.appendChild(cb); label.appendChild(span);
-
-    const actions=document.createElement('div'); actions.className='actions';
-    const edit=document.createElement('button'); edit.textContent='✏️';
-    edit.onclick=()=>{const v=prompt('編集',item.name);if(v){item.name=v.trim();save();render();}};
-    const del=document.createElement('button'); del.textContent='🗑';
-    del.onclick=()=>{if(confirm(`${item.name}を削除しますか？`)){state.items=state.items.filter(x=>x.id!==item.id);save();render();}};
-    actions.appendChild(edit);actions.appendChild(del);
-
-    li.appendChild(label); li.appendChild(actions);
-    listEl.appendChild(li);
-  });
-  tsEl.textContent=fmtTime(state.updatedAt);
-}
-
-$('#addBtn').onclick=()=>{const v=inputEl.value.trim(); if(v){state.items.push({id:uid(),name:v,checked:false}); inputEl.value=''; save(); render();}};
-inputEl.onkeydown=e=>{if(e.key==='Enter') $('#addBtn').click();};
-
-$('#uncheckAllBtn').onclick=()=>{state.items.forEach(i=>i.checked=false); save(); render();};
-$('#clearCheckedBtn').onclick=()=>{state.items=state.items.filter(i=>!i.checked); save(); render();};
-
-load(); render();
-</script>
-</body>
-</html>
+    <!-- よく使う -->
+    <div class="chips" id="chips">
+      <span class="chip" data-add="📱 けいたい">📱 けいたい</span>
+      <span class="chip" data-add="🔋 じ
