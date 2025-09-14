@@ -3,236 +3,133 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>持ち物チェッカー（シンプル）</title>
-<meta name="description" content="忘れ物防止のためのシンプルな持ち物チェックアプリ。登録・編集・削除、チェック、全解除、端末保存に対応。">
+<title>持ち物チェッカー</title>
+<meta name="description" content="忘れ物防止のためのシンプルな持ち物チェックアプリ。スマホ最適化UI。">
 
 <style>
-  /* ---- ベース ---- */
   :root { color-scheme: light dark; }
-  html,body{margin:0;padding:0;font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;}
-  body{max-width:720px;margin:auto;padding:16px 14px 80px;background:Canvas;color:CanvasText;}
-
-  h1{font-size:1.25rem;margin:0 0 12px;}
-  .sub{font-size:.9rem;opacity:.7;margin:0 0 14px;}
-
-  /* ---- 入力行 ---- */
-  .row{display:flex;gap:8px;align-items:center;margin:10px 0 14px;}
-  input[type="text"]{
-    flex:1;padding:12px;border:1px solid color-mix(in oklab, CanvasText 20%, transparent);
-    border-radius:12px;font-size:16px;background:Field;color:FieldText;
+  body {
+    margin: 0; padding: 0; font-family: system-ui, sans-serif;
+    background: Canvas; color: CanvasText;
   }
-  button{
-    padding:10px 14px;border-radius:12px;border:1px solid color-mix(in oklab, CanvasText 20%, transparent);
-    background:ButtonFace;color:ButtonText;font-weight:600;cursor:pointer;
-  }
-  button:active{transform: translateY(1px);}
-
-  /* ---- バー ---- */
-  .bar{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px;}
-  .bar button{flex:1}
-
-  /* ---- リスト ---- */
-  ul{list-style:none;margin:0;padding:0;border:1px solid color-mix(in oklab, CanvasText 20%, transparent);border-radius:14px;overflow:hidden}
-  li{
-    display:flex;align-items:center;gap:10px;padding:12px 12px;border-top:1px solid color-mix(in oklab, CanvasText 12%, transparent);
-    background:Canvas;color:CanvasText;
-  }
-  li:first-child{border-top:none;}
-  li label{display:flex;align-items:center;gap:10px;flex:1;cursor:pointer;}
-  li .name{line-height:1.35;}
-  li.checked .name{opacity:.6;text-decoration: line-through;}
-  .actions{display:flex;gap:6px;}
-  .iconbtn{
-    border:1px solid color-mix(in oklab, CanvasText 20%, transparent);background:transparent;
-    padding:6px 8px;border-radius:10px;font-size:.95rem;min-width:40px;
+  header {
+    position: sticky; top: 0;
+    background: color-mix(in oklab, Canvas 90%, CanvasText 5%);
+    padding: 12px; font-size: 1.2rem; font-weight: bold;
+    text-align: center; border-bottom: 1px solid #ccc;
   }
 
-  /* ---- フッター ---- */
-  .foot{position:fixed;left:0;right:0;bottom:0;padding:10px 14px;background:color-mix(in oklab, Canvas 85%, CanvasText 0%);
-    border-top:1px solid color-mix(in oklab, CanvasText 20%, transparent);}
-  .foot small{opacity:.7}
+  /* 入力エリア */
+  .row { display: flex; gap: 8px; padding: 10px; }
+  .row input {
+    flex: 1; padding: 14px; font-size: 1rem;
+    border-radius: 12px; border: 1px solid #ccc;
+  }
+  .row button {
+    padding: 12px 16px; border: none; border-radius: 12px;
+    background: #007aff; color: white; font-size: 1rem; font-weight: bold;
+  }
+
+  /* 操作ボタン */
+  .bar {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    padding: 10px; justify-content: space-between;
+  }
+  .bar button {
+    flex: 1; padding: 14px; font-size: .95rem;
+    border: none; border-radius: 12px; font-weight: bold;
+    background: #eee; color: #333;
+  }
+
+  /* リスト */
+  ul { list-style: none; margin: 0; padding: 10px; }
+  li {
+    background: color-mix(in oklab, Canvas 96%, CanvasText 3%);
+    border-radius: 12px; margin-bottom: 10px; padding: 12px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  li label { display: flex; align-items: center; gap: 10px; flex: 1; }
+  li input[type=checkbox] { width: 22px; height: 22px; }
+  li .name { font-size: 1rem; }
+  li.checked .name { text-decoration: line-through; opacity: 0.6; }
+
+  .actions button {
+    margin-left: 6px; padding: 6px 10px; font-size: .9rem;
+    border-radius: 10px; border: 1px solid #aaa; background: white;
+  }
+
+  /* フッター */
+  footer {
+    position: sticky; bottom: 0; background: #f9f9f9;
+    border-top: 1px solid #ccc; text-align: center;
+    padding: 10px; font-size: 0.8rem; opacity: 0.7;
+  }
 </style>
 </head>
 <body>
-  <h1>🧳 持ち物チェッカー</h1>
-  <p class="sub">登録→チェック✅。次のチェック用に「全解除（リセット）」あり。端末に自動保存されます。</p>
+  <header>🧳 持ち物チェッカー</header>
 
-  <!-- 追加行 -->
   <div class="row">
-    <input id="newItem" type="text" placeholder="例）スマホ充電器、財布、家の鍵…" inputmode="text" />
+    <input id="newItem" type="text" placeholder="アイテムを入力…" />
     <button id="addBtn">追加</button>
   </div>
 
-  <!-- 操作バー -->
   <div class="bar">
-    <button id="checkAllBtn">すべて✅</button>
-    <button id="uncheckAllBtn">全解除（リセット）</button>
-    <button id="clearCheckedBtn">✅済みを削除</button>
+    <button id="uncheckAllBtn">全解除</button>
+    <button id="clearCheckedBtn">✅削除</button>
   </div>
 
-  <!-- リスト -->
   <ul id="list"></ul>
 
-  <div class="foot">
-    <small>保存先：この端末（localStorage） / 最終更新 <span id="ts">–</span></small>
-  </div>
+  <footer>保存先：この端末 / 最終更新 <span id="ts">–</span></footer>
 
 <script>
-/* ===============================
-   持ち物チェッカー（シンプル実装）
-   - 追加 / 編集 / 削除
-   - チェック / 全チェック / 全解除
-   - ✅済み一括削除（任意）
-   - 端末保存（localStorage）
-   =============================== */
+const LS_KEY = 'packlist_v3';
+let state = { items: [], updatedAt: Date.now() };
 
-const LS_KEY = 'packlist_v1';
-
-let state = {
-  items: [],        // {id, name, checked}
-  updatedAt: Date.now()
-};
-
-/* ---------- ユーティリティ ---------- */
 const $ = (sel)=>document.querySelector(sel);
-const listEl = $('#list');
-const tsEl = $('#ts');
-const inputEl = $('#newItem');
-const addBtn = $('#addBtn');
-const checkAllBtn = $('#checkAllBtn');
-const uncheckAllBtn = $('#uncheckAllBtn');
-const clearCheckedBtn = $('#clearCheckedBtn');
+const listEl = $('#list'), tsEl = $('#ts'), inputEl = $('#newItem');
 
-function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2); }
+function fmtTime(t){ const d=new Date(t);return `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;}
 
-function fmtTime(t){
-  const d = new Date(t);
-  const y = d.getFullYear();
-  const m = String(d.getMonth()+1).padStart(2,'0');
-  const day = String(d.getDate()).padStart(2,'0');
-  const hh = String(d.getHours()).padStart(2,'0');
-  const mm = String(d.getMinutes()).padStart(2,'0');
-  return `${y}/${m}/${day} ${hh}:${mm}`;
-}
+function save(){ state.updatedAt=Date.now(); localStorage.setItem(LS_KEY,JSON.stringify(state)); tsEl.textContent=fmtTime(state.updatedAt);}
+function load(){ try{const raw=localStorage.getItem(LS_KEY);if(raw){state=JSON.parse(raw)||state;}}catch(e){} }
 
-/* ---------- 永続化 ---------- */
-function save(){
-  state.updatedAt = Date.now();
-  localStorage.setItem(LS_KEY, JSON.stringify(state));
-  tsEl.textContent = fmtTime(state.updatedAt);
-}
-
-function load(){
-  try{
-    const raw = localStorage.getItem(LS_KEY);
-    if(raw){
-      const obj = JSON.parse(raw);
-      if(Array.isArray(obj.items)) state.items = obj.items;
-      if(obj.updatedAt) state.updatedAt = obj.updatedAt;
-    }
-  }catch(e){ console.warn('load failed', e); }
-}
-
-/* ---------- 描画 ---------- */
 function render(){
-  listEl.innerHTML = '';
+  listEl.innerHTML='';
   state.items.forEach(item=>{
-    const li = document.createElement('li');
+    const li=document.createElement('li');
     if(item.checked) li.classList.add('checked');
 
-    const label = document.createElement('label');
-    label.setAttribute('for', `cb-${item.id}`);
+    const label=document.createElement('label');
+    const cb=document.createElement('input');
+    cb.type='checkbox'; cb.checked=item.checked;
+    cb.onchange=()=>{item.checked=cb.checked; save(); render();};
+    const span=document.createElement('span'); span.className='name'; span.textContent=item.name;
 
-    const cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.id = `cb-${item.id}`;
-    cb.checked = !!item.checked;
-    cb.addEventListener('change', ()=>{
-      item.checked = cb.checked;
-      save(); render();
-    });
+    label.appendChild(cb); label.appendChild(span);
 
-    const name = document.createElement('span');
-    name.className = 'name';
-    name.textContent = item.name;
+    const actions=document.createElement('div'); actions.className='actions';
+    const edit=document.createElement('button'); edit.textContent='✏️';
+    edit.onclick=()=>{const v=prompt('編集',item.name);if(v){item.name=v.trim();save();render();}};
+    const del=document.createElement('button'); del.textContent='🗑';
+    del.onclick=()=>{if(confirm(`${item.name}を削除しますか？`)){state.items=state.items.filter(x=>x.id!==item.id);save();render();}};
+    actions.appendChild(edit);actions.appendChild(del);
 
-    label.appendChild(cb);
-    label.appendChild(name);
-
-    const actions = document.createElement('div');
-    actions.className = 'actions';
-
-    // 編集
-    const editBtn = document.createElement('button');
-    editBtn.className = 'iconbtn';
-    editBtn.textContent = '✏️編集';
-    editBtn.addEventListener('click', ()=>{
-      const v = prompt('名前を編集', item.name);
-      if(v === null) return; // キャンセル
-      const trimmed = v.trim();
-      if(!trimmed) return alert('空白は登録できません');
-      item.name = trimmed;
-      save(); render();
-    });
-
-    // 削除
-    const delBtn = document.createElement('button');
-    delBtn.className = 'iconbtn';
-    delBtn.textContent = '🗑削除';
-    delBtn.addEventListener('click', ()=>{
-      if(!confirm(`「${item.name}」を削除しますか？`)) return;
-      state.items = state.items.filter(x=>x.id !== item.id);
-      save(); render();
-    });
-
-    actions.appendChild(editBtn);
-    actions.appendChild(delBtn);
-
-    li.appendChild(label);
-    li.appendChild(actions);
+    li.appendChild(label); li.appendChild(actions);
     listEl.appendChild(li);
   });
-
-  tsEl.textContent = fmtTime(state.updatedAt);
+  tsEl.textContent=fmtTime(state.updatedAt);
 }
 
-/* ---------- 追加系 ---------- */
-function addItem(name){
-  const v = (name ?? inputEl.value).trim();
-  if(!v) return;
-  state.items.push({id: uid(), name: v, checked:false});
-  inputEl.value = '';
-  save(); render();
-}
+$('#addBtn').onclick=()=>{const v=inputEl.value.trim(); if(v){state.items.push({id:uid(),name:v,checked:false}); inputEl.value=''; save(); render();}};
+inputEl.onkeydown=e=>{if(e.key==='Enter') $('#addBtn').click();};
 
-addBtn.addEventListener('click', ()=> addItem());
-inputEl.addEventListener('keydown', (e)=>{
-  if(e.key === 'Enter') addItem();
-});
+$('#uncheckAllBtn').onclick=()=>{state.items.forEach(i=>i.checked=false); save(); render();};
+$('#clearCheckedBtn').onclick=()=>{state.items=state.items.filter(i=>!i.checked); save(); render();};
 
-/* ---------- バー操作 ---------- */
-checkAllBtn.addEventListener('click', ()=>{
-  state.items.forEach(i=>i.checked = true);
-  save(); render();
-});
-
-uncheckAllBtn.addEventListener('click', ()=>{
-  // 次のチェック用：チェックだけ全解除（リセット）
-  state.items.forEach(i=>i.checked = false);
-  save(); render();
-});
-
-clearCheckedBtn.addEventListener('click', ()=>{
-  // ✅済みを一括削除（任意）
-  if(!state.items.some(i=>i.checked)) return alert('✅済みの項目はありません');
-  if(!confirm('✅済みの項目を削除しますか？')) return;
-  state.items = state.items.filter(i=>!i.checked);
-  save(); render();
-});
-
-/* ---------- 起動 ---------- */
-load();
-render();
+load(); render();
 </script>
 </body>
 </html>
